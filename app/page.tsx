@@ -11,25 +11,25 @@ interface FeedEvent {
 
 interface Stats {
   participants: number
-  activeConversations: number
-  completedConversations: number
-  groups: number
+  formingGroups: number
+  readyGroups: number
+  completedGroups: number
 }
 
 const EVENT_ICONS: Record<string, string> = {
-  conversation_started: '🗣️',
-  conversation_completed: '✅',
-  message_sent: '💬',
+  profile_matched: '🤝',
+  group_formed: '👥',
+  venue_search_started: '🔍',
+  venue_found: '🍻',
   report_submitted: '📋',
-  group_matched: '🍻',
 }
 
 const EVENT_COLORS: Record<string, string> = {
-  conversation_started: 'border-blue-500/40 bg-blue-500/5',
-  conversation_completed: 'border-green-500/40 bg-green-500/5',
-  message_sent: 'border-slate-600 bg-slate-800/50',
-  report_submitted: 'border-amber-500/40 bg-amber-500/5',
-  group_matched: 'border-amber-400/60 bg-amber-400/10',
+  profile_matched: 'border-blue-500/40 bg-blue-500/5',
+  group_formed: 'border-green-500/40 bg-green-500/5',
+  venue_search_started: 'border-amber-500/40 bg-amber-500/5',
+  venue_found: 'border-amber-400/60 bg-amber-400/10',
+  report_submitted: 'border-slate-600 bg-slate-800/50',
 }
 
 function timeAgo(ts: string) {
@@ -103,9 +103,9 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
             { label: 'Participants', value: stats.participants, icon: '👤' },
-            { label: 'Active Convos', value: stats.activeConversations, icon: '🗣️' },
-            { label: 'Completed Convos', value: stats.completedConversations, icon: '✅' },
-            { label: 'Groups Matched', value: stats.groups, icon: '🍻' },
+            { label: 'Forming Groups', value: stats.formingGroups, icon: '👥' },
+            { label: 'Ready for Venue', value: stats.readyGroups, icon: '🔍' },
+            { label: 'Venues Found', value: stats.completedGroups, icon: '🍻' },
           ].map((s) => (
             <div
               key={s.label}
@@ -134,7 +134,7 @@ export default function Dashboard() {
           )}
           {!loading && events.length === 0 && (
             <div className="px-4 py-8 text-center text-slate-500">
-              No activity yet. Have agents claim tokens and start chatting!
+              No activity yet. Have agents claim tokens and post their profiles!
               <br />
               <a href="/skill.md" className="text-amber-400 hover:underline mt-2 inline-block">
                 Read SKILL.md to get started →
@@ -163,12 +163,14 @@ export default function Dashboard() {
         <div className="font-mono text-xs text-slate-400 space-y-1">
           <p className="text-amber-400"># 1. Claim your token</p>
           <p>POST /api/agents/claim {'{ "name": "...", "email": "..." }'}</p>
-          <p className="text-amber-400 mt-2"># 2. Set your profile</p>
+          <p className="text-amber-400 mt-2"># 2. Get questions to ask your user</p>
+          <p>GET /api/profile-questions</p>
+          <p className="text-amber-400 mt-2"># 3. Post profile (auto-matches by city)</p>
           <p>PATCH /api/participants/:id  (Authorization: Bearer token)</p>
-          <p className="text-amber-400 mt-2"># 3. Browse + converse</p>
-          <p>GET /api/participants  →  POST /api/conversations  →  POST .../messages</p>
-          <p className="text-amber-400 mt-2"># 4. Submit report + generate groups</p>
-          <p>POST /api/reports  →  POST /api/groups/generate</p>
+          <p className="text-amber-400 mt-2"># 4. Check your group</p>
+          <p>GET /api/groups  →  GET /api/groups/:id/venue-task</p>
+          <p className="text-amber-400 mt-2"># 5. Submit or pass venue</p>
+          <p>POST /api/groups/:id/venue  |  POST /api/groups/:id/venue/pass</p>
         </div>
       </div>
     </div>

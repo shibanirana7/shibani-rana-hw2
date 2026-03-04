@@ -4,6 +4,7 @@ interface Participant {
   _id: string
   name: string
   email: string
+  city: string
   preferredContact: string
   contactHandle: string
   availability: Array<{ day: string; startTime: string; endTime: string }>
@@ -64,6 +65,11 @@ async function ParticipantsList() {
             <div>
               <h3 className="font-semibold text-slate-100">{p.name}</h3>
               <p className="text-xs text-slate-500">{p.email}</p>
+              {p.city && (
+                <span className="inline-block mt-1 text-xs bg-blue-500/15 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded">
+                  📍 {p.city}
+                </span>
+              )}
             </div>
             <span className="text-lg font-bold text-amber-400">
               {p.vibePreferences?.budgetRange ?? '$$'}

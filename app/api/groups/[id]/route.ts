@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import dbConnect from '@/lib/db'
-import Conversation from '@/lib/models/Conversation'
+import HappyHourGroup from '@/lib/models/HappyHourGroup'
 
 export async function GET(
   _req: NextRequest,
@@ -9,11 +9,11 @@ export async function GET(
   try {
     await dbConnect()
     const { id } = await params
-    const conversation = await Conversation.findById(id)
-    if (!conversation) {
+    const group = await HappyHourGroup.findById(id)
+    if (!group) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
-    return NextResponse.json({ conversation })
+    return NextResponse.json({ group })
   } catch (err) {
     console.error(err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

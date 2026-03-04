@@ -16,6 +16,7 @@ export interface IVibePreferences {
 export interface IParticipant extends Document {
   name: string
   email: string
+  city: string
   preferredContact: 'email' | 'discord' | 'slack' | 'sms'
   contactHandle: string
   availability: IAvailabilitySlot[]
@@ -27,6 +28,7 @@ export interface IParticipant extends Document {
 const ParticipantSchema = new Schema<IParticipant>({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
+  city: { type: String, required: true, default: '' },
   preferredContact: {
     type: String,
     enum: ['email', 'discord', 'slack', 'sms'],

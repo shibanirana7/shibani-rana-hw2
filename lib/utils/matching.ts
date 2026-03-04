@@ -1,157 +1,187 @@
-import { IParticipant, IAvailabilitySlot } from '@/lib/models/Participant'
-import { ICompatibilityReport } from '@/lib/models/CompatibilityReport'
+import dbConnect from '@/lib/db'
+import { IParticipant } from '@/lib/models/Participant'
+import { IHappyHourGroup } from '@/lib/models/HappyHourGroup'
+import HappyHourGroup from '@/lib/models/HappyHourGroup'
+import CompatibilityReport from '@/lib/models/CompatibilityReport'
+import {
+  calculateCompatibility,
+  findEarliestUniversalOverlap,
+  minimumGroupSize,
+} from '@/lib/utils/compatibility'
 
-function timeToMinutes(time: string): number {
-  const [h, m] = time.split(':').map(Number)
-  return h * 60 + m
-}
+const BUDGETS = ['$', '$$', '$$$', '$$$$']
 
-function minutesToTime(minutes: number): string {
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
-  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
-}
+function vibeProfile(members: IParticipant[]) {
+  const allVenues = members.map((p) => p.vibePreferences?.venueTypes ?? [])
+  const commonVenues = allVenues[0]?.filter((v) => allVenues.every((t) => t.includes(v))) ?? []
 
-function getOverlappingSlots(
-  slotsA: IAvailabilitySlot[],
-  slotsB: IAvailabilitySlot[]
-): Array<{ day: string; time: string }> {
-  const overlaps: Array<{ day: string; time: string }> = []
-  for (const a of slotsA) {
-    for (const b of slotsB) {
-      if (a.day === b.day) {
-        const startA = timeToMinutes(a.startTime)
-        const endA = timeToMinutes(a.endTime)
-        const startB = timeToMinutes(b.startTime)
-        const endB = timeToMinutes(b.endTime)
-        const overlapStart = Math.max(startA, startB)
-        const overlapEnd = Math.min(endA, endB)
-        if (overlapEnd - overlapStart >= 60) {
-          overlaps.push({
-            day: a.day,
-            time: `${minutesToTime(overlapStart)} – ${minutesToTime(overlapEnd)}`,
-          })
-        }
-      }
-    }
+  const allDrinks = members.map((p) => p.vibePreferences?.drinkTypes ?? [])
+  const commonDrinks = allDrinks[0]?.filter((d) => allDrinks.every((t) => t.includes(d))) ?? []
+
+  const budgetIndices = members
+    .map((p) => BUDGETS.indexOf(p.vibePreferences?.budgetRange ?? '$$'))
+    .filter((i) => i >= 0)
+  const minBudget = BUDGETS[Math.min(...(budgetIndices.length ? budgetIndices : [1]))]
+
+  return {
+    venueTypes: commonVenues.length > 0 ? commonVenues : [...new Set(allVenues.flat())].slice(0, 3),
+    drinkTypes: commonDrinks.length > 0 ? commonDrinks : [...new Set(allDrinks.flat())].slice(0, 3),
+    budgetRange: minBudget,
+    groupSize: members.length,
   }
-  return overlaps
 }
 
-export interface MatchResult {
-  participantIds: string[]
-  participantNames: string[]
-  suggestedTimes: Array<{ day: string; time: string }>
-  vibeProfile: {
-    venueTypes: string[]
-    drinkTypes: string[]
-    budgetRange: string
-    groupSize: number
-  }
-  averageCompatibilityScore: number
+function isProfileComplete(p: IParticipant): boolean {
+  return !!(
+    p.city &&
+    p.availability?.length > 0 &&
+    p.vibePreferences?.venueTypes?.length > 0
+  )
 }
 
-export function generateMatches(
-  participants: IParticipant[],
-  reports: ICompatibilityReport[]
-): MatchResult[] {
-  // Build mutual score map: sorted pair key → average mutual score
-  const mutualScores = new Map<string, number>()
+/**
+ * Called when a participant updates their profile.
+ * Tries to join an existing group or create a new one (same city only).
+ * Saves results to DB and returns the updated/created group (or null).
+ */
+export async function autoJoinGroup(
+  participant: IParticipant,
+  allParticipants: IParticipant[]
+): Promise<IHappyHourGroup | null> {
+  await dbConnect()
 
-  for (const r of reports) {
-    const aId = r.fromParticipantId.toString()
-    const bId = r.toParticipantId.toString()
-    const key = [aId, bId].sort().join('|')
-    const reverse = reports.find(
-      (x) =>
-        x.fromParticipantId.toString() === bId &&
-        x.toParticipantId.toString() === aId
-    )
-    const score = reverse
-      ? (r.overallScore + reverse.overallScore) / 2
-      : r.overallScore
-    if (!mutualScores.has(key) || mutualScores.get(key)! < score) {
-      mutualScores.set(key, score)
-    }
-  }
+  if (!isProfileComplete(participant)) return null
 
-  // Sort pairs by score descending
-  const sortedPairs = Array.from(mutualScores.entries()).sort(
-    ([, a], [, b]) => b - a
+  const pId = participant._id.toString()
+  const city = participant.city
+
+  // Candidates: same city, complete profile, not self
+  const candidates = allParticipants.filter(
+    (p) => p._id.toString() !== pId && p.city === city && isProfileComplete(p)
   )
 
-  const assigned = new Set<string>()
-  const groups: MatchResult[] = []
+  if (candidates.length === 0) return null
 
-  for (const [pairKey, pairScore] of sortedPairs) {
-    const [idA, idB] = pairKey.split('|')
-    if (assigned.has(idA) || assigned.has(idB)) continue
-
-    const groupIds = [idA, idB]
-
-    // Try to expand the group
-    for (const p of participants) {
-      const pId = p._id.toString()
-      if (assigned.has(pId) || groupIds.includes(pId)) continue
-      const scores = groupIds.map((gId) => {
-        const k = [pId, gId].sort().join('|')
-        return mutualScores.get(k) ?? 0
-      })
-      const avg = scores.reduce((a, b) => a + b, 0) / scores.length
-      if (avg >= 6 && groupIds.length < 6) {
-        groupIds.push(pId)
-      }
-    }
-
-    const members = groupIds
-      .map((id) => participants.find((p) => p._id.toString() === id))
-      .filter((p): p is IParticipant => !!p)
-
-    // Find overlapping availability
-    let slots = members[0]?.availability.map((s) => ({
-      day: s.day,
-      time: `${s.startTime} – ${s.endTime}`,
-    })) ?? []
-
-    for (let i = 1; i < members.length; i++) {
-      slots = getOverlappingSlots(members[0].availability, members[i].availability)
-    }
-
-    // Vibe profile: intersection then fallback to union
-    const allVenues = members.map((p) => p.vibePreferences.venueTypes)
-    const commonVenues = allVenues[0]?.filter((v) =>
-      allVenues.every((types) => types.includes(v))
-    ) ?? []
-
-    const allDrinks = members.map((p) => p.vibePreferences.drinkTypes)
-    const commonDrinks = allDrinks[0]?.filter((d) =>
-      allDrinks.every((types) => types.includes(d))
-    ) ?? []
-
-    const budgets = ['$', '$$', '$$$', '$$$$']
-    const budgetIndices = members.map((p) =>
-      budgets.indexOf(p.vibePreferences.budgetRange)
-    )
-    const minBudgetIdx = Math.min(...budgetIndices.filter((i) => i >= 0))
-    const minBudget = budgets[minBudgetIdx >= 0 ? minBudgetIdx : 1]
-
-    groups.push({
-      participantIds: groupIds,
-      participantNames: members.map((p) => p.name),
-      suggestedTimes: slots.slice(0, 3),
-      vibeProfile: {
-        venueTypes:
-          commonVenues.length > 0 ? commonVenues : [...new Set(allVenues.flat())].slice(0, 3),
-        drinkTypes:
-          commonDrinks.length > 0 ? commonDrinks : [...new Set(allDrinks.flat())].slice(0, 3),
-        budgetRange: minBudget,
-        groupSize: groupIds.length,
-      },
-      averageCompatibilityScore: Math.round(pairScore * 10) / 10,
-    })
-
-    groupIds.forEach((id) => assigned.add(id))
+  // Calculate compatibility with all candidates
+  const compatMap = new Map<string, ReturnType<typeof calculateCompatibility>>()
+  for (const c of candidates) {
+    compatMap.set(c._id.toString(), calculateCompatibility(participant, c))
   }
 
-  return groups
+  // Save CompatibilityReport for each pair (upsert)
+  for (const [cId, compat] of compatMap.entries()) {
+    const existing = await CompatibilityReport.findOne({
+      fromParticipantId: pId,
+      toParticipantId: cId,
+    })
+    if (!existing) {
+      const cParticipant = candidates.find((c) => c._id.toString() === cId)
+      await CompatibilityReport.create({
+        fromParticipantId: pId,
+        fromParticipantName: participant.name,
+        toParticipantId: cId,
+        toParticipantName: cParticipant?.name ?? 'Unknown',
+        conversationId: new (await import('mongoose')).default.Types.ObjectId(),
+        scores: compat.scores,
+        overallScore: compat.overallScore,
+        suggestedTimes: compat.overlappingSlots
+          .slice(0, 3)
+          .map((s) => ({ day: s.day, time: s.startTime })),
+        notes: 'Auto-generated from profile matching',
+      })
+    }
+  }
+
+  // Check if already in a group
+  const alreadyIn = await HappyHourGroup.findOne({
+    participantIds: participant._id,
+    city,
+  })
+  if (alreadyIn) {
+    // Recalculate selectedTime with updated profile
+    const memberDocs = allParticipants.filter((p) =>
+      alreadyIn.participantIds.map((id: { toString(): string }) => id.toString()).includes(p._id.toString())
+    )
+    const newTime = findEarliestUniversalOverlap(memberDocs)
+    alreadyIn.selectedTime = newTime
+    alreadyIn.vibeProfile = vibeProfile(memberDocs)
+    await alreadyIn.save()
+    return alreadyIn
+  }
+
+  // Find a suitable existing 'forming' group to join
+  const formingGroups = await HappyHourGroup.find({ city, status: 'forming' })
+
+  for (const group of formingGroups) {
+    if (group.participantIds.length >= 6) continue
+
+    const memberIds = group.participantIds.map((id: { toString(): string }) => id.toString())
+    const members = allParticipants.filter((p) => memberIds.includes(p._id.toString()))
+
+    // Check avg compatibility with all current members
+    const scores = members.map((m) => {
+      const c = compatMap.get(m._id.toString())
+      return c?.overallScore ?? 0
+    })
+    const avgScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0
+    if (avgScore < 6) continue
+
+    // Check universal time overlap
+    const allMembers = [...members, participant]
+    const newTime = findEarliestUniversalOverlap(allMembers)
+    if (!newTime) continue
+
+    // Join this group
+    group.participantIds.push(participant._id)
+    group.participantNames.push(participant.name)
+    group.memberOrder.push(participant._id)
+    group.selectedTime = newTime
+    group.averageCompatibilityScore =
+      Math.round(((group.averageCompatibilityScore * members.length + avgScore) / allMembers.length) * 10) / 10
+    group.vibeProfile = vibeProfile(allMembers)
+
+    // Check minimum size
+    const minSize = minimumGroupSize(
+      allParticipants
+        .find((p) => p._id.toString() === group.leaderParticipantId?.toString())
+        ?.vibePreferences?.groupSizePreference ?? 'medium'
+    )
+    group.minimumGroupSize = minSize
+    if (group.participantIds.length >= minSize) {
+      group.status = 'ready_for_venue_search'
+    }
+
+    await group.save()
+    return group
+  }
+
+  // No suitable group — find best compatible candidate to start a new group with
+  const compatiblePairs = candidates
+    .map((c) => ({ candidate: c, compat: compatMap.get(c._id.toString())! }))
+    .filter((x) => x.compat.overallScore >= 6 && x.compat.overlappingSlots.length > 0)
+    .sort((a, b) => b.compat.overallScore - a.compat.overallScore)
+
+  if (compatiblePairs.length === 0) return null
+
+  const { candidate, compat } = compatiblePairs[0]
+  const members = [participant, candidate]
+  const selectedTime = findEarliestUniversalOverlap(members)
+  const minSize = minimumGroupSize(participant.vibePreferences?.groupSizePreference ?? 'medium')
+
+  const newGroup = await HappyHourGroup.create({
+    city,
+    participantIds: [participant._id, candidate._id],
+    participantNames: [participant.name, candidate.name],
+    memberOrder: [participant._id, candidate._id],
+    leaderParticipantId: participant._id,
+    selectedTime,
+    minimumGroupSize: minSize,
+    status: members.length >= minSize ? 'ready_for_venue_search' : 'forming',
+    venueSearchIndex: 0,
+    venue: null,
+    vibeProfile: vibeProfile(members),
+    averageCompatibilityScore: compat.overallScore,
+  })
+
+  return newGroup
 }

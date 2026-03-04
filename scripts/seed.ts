@@ -22,6 +22,7 @@ if (!MONGODB_URI) {
 const ParticipantSchema = new mongoose.Schema({
   name: String,
   email: { type: String, unique: true },
+  city: { type: String, default: '' },
   preferredContact: { type: String, default: 'discord' },
   contactHandle: String,
   availability: [{ day: String, startTime: String, endTime: String }],
@@ -39,7 +40,6 @@ const AgentSchema = new mongoose.Schema({
   participantId: { type: mongoose.Types.ObjectId, ref: 'Participant' },
   token: { type: String, unique: true },
   status: { type: String, default: 'idle' },
-  conversationsCompleted: { type: Number, default: 0 },
   lastSeen: { type: Date, default: Date.now },
   createdAt: { type: Date, default: Date.now },
 })
@@ -51,6 +51,7 @@ const SEED_PARTICIPANTS = [
   {
     name: 'Alex Rivera',
     email: 'alex@example.com',
+    city: 'San Francisco',
     preferredContact: 'discord' as const,
     contactHandle: 'alexr#4242',
     availability: [
@@ -67,6 +68,7 @@ const SEED_PARTICIPANTS = [
   {
     name: 'Jordan Kim',
     email: 'jordan@example.com',
+    city: 'San Francisco',
     preferredContact: 'slack' as const,
     contactHandle: '@jordan.kim',
     availability: [
@@ -83,6 +85,7 @@ const SEED_PARTICIPANTS = [
   {
     name: 'Morgan Lee',
     email: 'morgan@example.com',
+    city: 'San Francisco',
     preferredContact: 'discord' as const,
     contactHandle: 'mlee#9910',
     availability: [
@@ -100,6 +103,7 @@ const SEED_PARTICIPANTS = [
   {
     name: 'Sam Chen',
     email: 'sam@example.com',
+    city: 'New York',
     preferredContact: 'sms' as const,
     contactHandle: '+1-555-0100',
     availability: [

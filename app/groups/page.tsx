@@ -2,8 +2,12 @@ import { Suspense } from 'react'
 
 interface HappyHourGroup {
   _id: string
+  city: string
   participantNames: string[]
-  suggestedTimes: Array<{ day: string; time: string }>
+  selectedTime: { day: string; time: string } | null
+  status: 'forming' | 'ready_for_venue_search' | 'venue_found'
+  venueSearchIndex: number
+  venue: { name: string; address: string; url?: string; notes?: string; submittedBy: string } | null
   vibeProfile: {
     venueTypes: string[]
     drinkTypes: string[]
@@ -11,6 +15,7 @@ interface HappyHourGroup {
     groupSize: number
   }
   averageCompatibilityScore: number
+  minimumGroupSize: number
   createdAt: string
 }
 
@@ -30,6 +35,12 @@ const DRINK_LABELS: Record<string, string> = {
   wine: '🍷 Wine',
   spirits: '🥃 Spirits',
   non_alcoholic: '🧃 Non-Alcoholic',
+}
+
+const STATUS_CONFIG = {
+  forming: { label: 'Forming', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', icon: '👥' },
+  ready_for_venue_search: { label: 'Finding Venue', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30', icon: '🔍' },
+  venue_found: { label: 'Venue Set!', color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: '📍' },
 }
 
 function ScoreBar({ score }: { score: number }) {
@@ -54,94 +65,120 @@ async function GroupsList() {
   if (groups.length === 0) {
     return (
       <div className="bg-slate-800 border border-slate-700 rounded-lg p-12 text-center">
-        <p className="text-slate-400 text-lg mb-2">No groups matched yet.</p>
+        <p className="text-slate-400 text-lg mb-2">No groups formed yet.</p>
         <p className="text-slate-500 text-sm">
-          Have agents complete conversations and submit compatibility reports, then trigger:
+          Groups form automatically when agents post profiles with matching city, schedule, and vibes.
         </p>
-        <code className="text-xs text-amber-400 bg-slate-900 px-3 py-1 rounded mt-3 inline-block">
-          POST /api/groups/generate
-        </code>
       </div>
     )
   }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {groups.map((g, i) => (
-        <div
-          key={g._id}
-          className="bg-slate-800 border border-amber-500/30 rounded-lg p-5"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-amber-400 text-lg">Group {i + 1}</h3>
-            <ScoreBar score={g.averageCompatibilityScore} />
-          </div>
-
-          {/* Members */}
-          <div className="mb-4">
-            <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Members</p>
-            <div className="flex flex-wrap gap-2">
-              {g.participantNames.map((name) => (
-                <span
-                  key={name}
-                  className="px-2 py-1 bg-slate-700 rounded text-sm text-slate-200 font-medium"
-                >
-                  👤 {name}
-                </span>
-              ))}
+      {groups.map((g, i) => {
+        const statusCfg = STATUS_CONFIG[g.status] ?? STATUS_CONFIG.forming
+        return (
+          <div
+            key={g._id}
+            className={`bg-slate-800 rounded-lg p-5 border ${
+              g.status === 'venue_found'
+                ? 'border-green-500/40'
+                : g.status === 'ready_for_venue_search'
+                ? 'border-amber-500/40'
+                : 'border-slate-700'
+            }`}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-amber-400 text-lg">Group {i + 1}</h3>
+                <span className="text-xs text-slate-500">📍 {g.city}</span>
+              </div>
+              <span className={`text-xs px-2 py-1 rounded border font-medium ${statusCfg.color}`}>
+                {statusCfg.icon} {statusCfg.label}
+              </span>
             </div>
-          </div>
 
-          {/* Suggested Times */}
-          {g.suggestedTimes?.length > 0 && (
-            <div className="mb-4">
-              <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">
-                Suggested Times
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {g.suggestedTimes.map((t, j) => (
+            <ScoreBar score={g.averageCompatibilityScore} />
+
+            {/* Selected Time — featured */}
+            {g.selectedTime && (
+              <div className="mt-3 mb-3 bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2 flex items-center gap-2">
+                <span className="text-green-400 text-lg">📅</span>
+                <div>
+                  <p className="text-xs text-green-400/70 uppercase tracking-wide">Meet Time</p>
+                  <p className="text-sm font-semibold text-green-300 capitalize">
+                    {g.selectedTime.day} @ {g.selectedTime.time}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Venue — if found */}
+            {g.venue && (
+              <div className="mt-3 mb-3 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+                <p className="text-xs text-amber-400/70 uppercase tracking-wide mb-1">Venue</p>
+                <p className="text-sm font-semibold text-amber-300">{g.venue.name}</p>
+                <p className="text-xs text-slate-400">{g.venue.address}</p>
+                {g.venue.url && (
+                  <a href={g.venue.url} target="_blank" className="text-xs text-amber-400 hover:underline">
+                    {g.venue.url}
+                  </a>
+                )}
+                {g.venue.notes && <p className="text-xs text-slate-500 mt-1">{g.venue.notes}</p>}
+                <p className="text-xs text-slate-600 mt-1">Found by {g.venue.submittedBy}</p>
+              </div>
+            )}
+
+            {/* Venue search indicator */}
+            {g.status === 'ready_for_venue_search' && !g.venue && (
+              <div className="mt-3 mb-3 bg-slate-700/50 border border-slate-600 rounded px-3 py-2 text-xs text-slate-400">
+                🔍 {g.participantNames[g.venueSearchIndex % g.participantNames.length]}&apos;s agent is searching for a venue…
+              </div>
+            )}
+
+            {/* Members */}
+            <div className="mb-3">
+              <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Members</p>
+              <div className="flex flex-wrap gap-1.5">
+                {g.participantNames.map((name, idx) => (
                   <span
-                    key={j}
-                    className="text-xs bg-green-500/15 text-green-400 border border-green-500/20 px-2 py-1 rounded"
+                    key={name}
+                    className={`px-2 py-0.5 rounded text-xs font-medium ${
+                      idx === 0 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/20' : 'bg-slate-700 text-slate-300'
+                    }`}
                   >
-                    📅 {t.day} {t.time}
+                    {idx === 0 ? '👑 ' : '👤 '}{name}
                   </span>
                 ))}
               </div>
             </div>
-          )}
 
-          {/* Vibe Profile */}
-          <div className="mb-4">
-            <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Vibe Profile</p>
-            <div className="flex flex-wrap gap-1 mb-2">
-              {g.vibeProfile.venueTypes.map((v) => (
-                <span
-                  key={v}
-                  className="text-xs bg-amber-500/15 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded"
-                >
-                  {VIBE_LABELS[v] ?? v}
-                </span>
-              ))}
+            {/* Vibes */}
+            <div className="mb-3">
+              <div className="flex flex-wrap gap-1 mb-1">
+                {g.vibeProfile.venueTypes.map((v) => (
+                  <span key={v} className="text-xs bg-amber-500/15 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded">
+                    {VIBE_LABELS[v] ?? v}
+                  </span>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {g.vibeProfile.drinkTypes.map((d) => (
+                  <span key={d} className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded">
+                    {DRINK_LABELS[d] ?? d}
+                  </span>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-1">
-              {g.vibeProfile.drinkTypes.map((d) => (
-                <span
-                  key={d}
-                  className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded"
-                >
-                  {DRINK_LABELS[d] ?? d}
-                </span>
-              ))}
+
+            <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-700">
+              <span>Budget: {g.vibeProfile.budgetRange}</span>
+              <span>{g.participantNames.length}/{g.minimumGroupSize} min · {g.vibeProfile.groupSize} total</span>
             </div>
           </div>
-
-          <div className="flex items-center justify-between text-xs text-slate-500 pt-3 border-t border-slate-700">
-            <span>Budget: {g.vibeProfile.budgetRange}</span>
-            <span>{g.vibeProfile.groupSize} people</span>
-          </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
@@ -151,13 +188,9 @@ export default function GroupsPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-slate-100">Happy Hour Groups</h1>
-        <code className="text-xs text-slate-500 bg-slate-800 px-3 py-1 rounded border border-slate-700">
-          POST /api/groups/generate to refresh
-        </code>
+        <span className="text-xs text-slate-500">Groups form automatically when profiles are posted</span>
       </div>
-      <Suspense
-        fallback={<div className="text-slate-400 text-center py-12">Loading groups…</div>}
-      >
+      <Suspense fallback={<div className="text-slate-400 text-center py-12">Loading groups…</div>}>
         <GroupsList />
       </Suspense>
     </div>

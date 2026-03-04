@@ -1,11 +1,15 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import dbConnect from '@/lib/db'
 import HappyHourGroup from '@/lib/models/HappyHourGroup'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     await dbConnect()
-    const groups = await HappyHourGroup.find().sort({ averageCompatibilityScore: -1 })
+    const { searchParams } = new URL(req.url)
+    const city = searchParams.get('city')
+
+    const query = city ? { city: { $regex: new RegExp(city, 'i') } } : {}
+    const groups = await HappyHourGroup.find(query).sort({ averageCompatibilityScore: -1 })
     return NextResponse.json({ groups })
   } catch (err) {
     console.error(err)

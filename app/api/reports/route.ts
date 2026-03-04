@@ -5,6 +5,8 @@ import Conversation from '@/lib/models/Conversation'
 import Participant from '@/lib/models/Participant'
 import Agent from '@/lib/models/Agent'
 import { getAgentFromRequest } from '@/lib/utils/auth'
+import { generateMatches } from '@/lib/utils/matching'
+import HappyHourGroup from '@/lib/models/HappyHourGroup'
 
 // GET — list all reports (public)
 export async function GET() {
@@ -76,6 +78,15 @@ export async function POST(req: NextRequest) {
       $inc: { conversationsCompleted: 1 },
       status: 'idle',
     })
+
+    // Auto-generate groups after every report
+    const [allParticipants, allReports] = await Promise.all([
+      Participant.find(),
+      CompatibilityReport.find(),
+    ])
+    const matches = generateMatches(allParticipants, allReports)
+    await HappyHourGroup.deleteMany({})
+    if (matches.length > 0) await HappyHourGroup.insertMany(matches)
 
     return NextResponse.json({ report }, { status: 201 })
   } catch (err) {

@@ -42,7 +42,7 @@ export async function POST(
     }
 
     const agentIdStr = agent._id.toString()
-    if (!conversation.agentIds.map((a) => a.toString()).includes(agentIdStr)) {
+    if (!conversation.agentIds.map((a: { toString(): string }) => a.toString()).includes(agentIdStr)) {
       return NextResponse.json(
         { error: 'You are not a participant in this conversation' },
         { status: 403 }

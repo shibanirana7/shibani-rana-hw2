@@ -5,7 +5,6 @@ export interface ICompatibilityReport extends Document {
   fromParticipantName: string
   toParticipantId: mongoose.Types.ObjectId
   toParticipantName: string
-  conversationId: mongoose.Types.ObjectId
   scores: {
     scheduleOverlap: number
     vibeCompatibility: number
@@ -32,11 +31,6 @@ const CompatibilityReportSchema = new Schema<ICompatibilityReport>({
     required: true,
   },
   toParticipantName: { type: String, required: true },
-  conversationId: {
-    type: Schema.Types.ObjectId,
-    ref: 'Conversation',
-    required: true,
-  },
   scores: {
     scheduleOverlap: { type: Number, min: 0, max: 10 },
     vibeCompatibility: { type: Number, min: 0, max: 10 },

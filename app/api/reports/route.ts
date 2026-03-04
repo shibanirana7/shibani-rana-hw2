@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import dbConnect from '@/lib/db'
 import CompatibilityReport from '@/lib/models/CompatibilityReport'
-import Conversation from '@/lib/models/Conversation'
 import Participant from '@/lib/models/Participant'
-import Agent from '@/lib/models/Agent'
 import { getAgentFromRequest } from '@/lib/utils/auth'
-import { generateMatches } from '@/lib/utils/matching'
-import HappyHourGroup from '@/lib/models/HappyHourGroup'
 
 // GET — list all reports (public)
 export async function GET() {
@@ -26,22 +22,24 @@ export async function POST(req: NextRequest) {
     await dbConnect()
     const agent = await getAgentFromRequest(req)
     if (!agent) {
-      return NextResponse.json({ error: 'Unauthorized. Include Authorization: Bearer <token>' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'Unauthorized. Include Authorization: Bearer <token>' },
+        { status: 401 }
+      )
     }
 
     const body = await req.json()
-    const { toParticipantId, conversationId, scores, suggestedTimes, notes } = body
+    const { toParticipantId, scores, suggestedTimes, notes } = body
 
-    if (!toParticipantId || !conversationId || !scores) {
+    if (!toParticipantId || !scores) {
       return NextResponse.json(
-        { error: 'toParticipantId, conversationId, and scores are required' },
+        { error: 'toParticipantId and scores are required' },
         { status: 400 }
       )
     }
 
     const myParticipantId = agent.participantId.toString()
 
-    // Calculate weighted overall score
     const overallScore =
       (scores.scheduleOverlap ?? 0) * 0.4 +
       (scores.vibeCompatibility ?? 0) * 0.25 +
@@ -49,8 +47,10 @@ export async function POST(req: NextRequest) {
       (scores.budgetCompatibility ?? 0) * 0.1 +
       (scores.groupSizeCompatibility ?? 0) * 0.1
 
-    const myParticipant = await Participant.findById(myParticipantId)
-    const toParticipant = await Participant.findById(toParticipantId)
+    const [myParticipant, toParticipant] = await Promise.all([
+      Participant.findById(myParticipantId),
+      Participant.findById(toParticipantId),
+    ])
 
     if (!toParticipant) {
       return NextResponse.json({ error: 'Target participant not found' }, { status: 404 })
@@ -61,32 +61,11 @@ export async function POST(req: NextRequest) {
       fromParticipantName: myParticipant?.name ?? 'Unknown',
       toParticipantId,
       toParticipantName: toParticipant.name,
-      conversationId,
       scores,
       overallScore: Math.round(overallScore * 10) / 10,
       suggestedTimes: suggestedTimes ?? [],
       notes: notes ?? '',
     })
-
-    // Mark conversation as completed and update agent
-    await Conversation.findByIdAndUpdate(conversationId, {
-      status: 'completed',
-      completedAt: new Date(),
-    })
-
-    await Agent.findByIdAndUpdate(agent._id, {
-      $inc: { conversationsCompleted: 1 },
-      status: 'idle',
-    })
-
-    // Auto-generate groups after every report
-    const [allParticipants, allReports] = await Promise.all([
-      Participant.find(),
-      CompatibilityReport.find(),
-    ])
-    const matches = generateMatches(allParticipants, allReports)
-    await HappyHourGroup.deleteMany({})
-    if (matches.length > 0) await HappyHourGroup.insertMany(matches)
 
     return NextResponse.json({ report }, { status: 201 })
   } catch (err) {

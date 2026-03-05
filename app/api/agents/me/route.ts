@@ -57,7 +57,7 @@ export async function DELETE(req: NextRequest) {
       group.participantIds = group.participantIds.filter(
         (id: { toString(): string }) => id.toString() !== participantId
       )
-      group.participantNames = group.participantNames.filter((_, i) => memberIds[i] !== participantId)
+      group.participantNames = group.participantNames.filter((_: string, i: number) => memberIds[i] !== participantId)
       group.memberOrder = group.memberOrder.filter(
         (id: { toString(): string }) => id.toString() !== participantId
       )

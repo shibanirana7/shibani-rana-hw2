@@ -97,13 +97,27 @@ export async function autoJoinGroup(
     city,
   })
   if (alreadyIn) {
-    // Recalculate selectedTime with updated profile
+    // Recalculate selectedTime and vibeProfile with updated profile
     const memberDocs = allParticipants.filter((p) =>
       alreadyIn.participantIds.map((id: { toString(): string }) => id.toString()).includes(p._id.toString())
     )
     const newTime = findEarliestUniversalOverlap(memberDocs)
     alreadyIn.selectedTime = newTime
     alreadyIn.vibeProfile = vibeProfile(memberDocs)
+
+    // Recalculate minimumGroupSize based on all members' preferences (most demanding wins)
+    const newMinSize = Math.max(
+      ...memberDocs.map((p) => minimumGroupSize(p.vibePreferences?.groupSizePreference ?? 'medium'))
+    )
+    alreadyIn.minimumGroupSize = newMinSize
+
+    const currentCount = alreadyIn.participantIds.length
+    if (alreadyIn.status === 'forming' && currentCount >= newMinSize) {
+      alreadyIn.status = 'ready_for_venue_search'
+    } else if (alreadyIn.status === 'ready_for_venue_search' && currentCount < newMinSize) {
+      alreadyIn.status = 'forming'
+    }
+
     await alreadyIn.save()
     return alreadyIn
   }
@@ -139,11 +153,9 @@ export async function autoJoinGroup(
       Math.round(((group.averageCompatibilityScore * members.length + avgScore) / allMembers.length) * 10) / 10
     group.vibeProfile = vibeProfile(allMembers)
 
-    // Check minimum size
-    const minSize = minimumGroupSize(
-      allParticipants
-        .find((p) => p._id.toString() === group.leaderParticipantId?.toString())
-        ?.vibePreferences?.groupSizePreference ?? 'medium'
+    // Check minimum size (most demanding member's preference wins)
+    const minSize = Math.max(
+      ...allMembers.map((p) => minimumGroupSize(p.vibePreferences?.groupSizePreference ?? 'medium'))
     )
     group.minimumGroupSize = minSize
     if (group.participantIds.length >= minSize) {

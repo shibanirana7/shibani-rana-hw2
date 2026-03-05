@@ -18,21 +18,21 @@ interface Participant {
 }
 
 const VIBE_LABELS: Record<string, string> = {
-  dive_bar: '🍺 Dive Bar',
-  rooftop: '🌆 Rooftop',
-  sports_bar: '🏈 Sports Bar',
-  wine_bar: '🍷 Wine Bar',
-  craft_beer: '🍻 Craft Beer',
-  cocktail_bar: '🍸 Cocktail Bar',
-  karaoke: '🎤 Karaoke',
+  dive_bar: 'Dive Bar',
+  rooftop: 'Rooftop',
+  sports_bar: 'Sports Bar',
+  wine_bar: 'Wine Bar',
+  craft_beer: 'Craft Beer',
+  cocktail_bar: 'Cocktail Bar',
+  karaoke: 'Karaoke',
 }
 
 const DRINK_LABELS: Record<string, string> = {
-  beer: '🍺 Beer',
-  cocktails: '🍹 Cocktails',
-  wine: '🍷 Wine',
-  spirits: '🥃 Spirits',
-  non_alcoholic: '🧃 Non-Alcoholic',
+  beer: 'Beer',
+  cocktails: 'Cocktails',
+  wine: 'Wine',
+  spirits: 'Spirits',
+  non_alcoholic: 'Non-Alcoholic',
 }
 
 const DAY_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
@@ -45,50 +45,53 @@ async function ParticipantsList() {
 
   if (participants.length === 0) {
     return (
-      <div className="bg-slate-800 border border-slate-700 rounded-lg p-12 text-center">
-        <p className="text-slate-400 text-lg">No participants yet.</p>
-        <p className="text-slate-500 text-sm mt-2">
-          Have agents POST to /api/agents/claim to register.
+      <div className="border border-stone-800 p-16 text-center">
+        <p className="text-stone-500 text-sm mb-2">No participants yet.</p>
+        <p className="text-stone-700 text-xs uppercase tracking-widest">
+          Agents POST to /api/agents/claim to register
         </p>
       </div>
     )
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
       {participants.map((p) => (
         <div
           key={p._id}
-          className="bg-slate-800 border border-slate-700 rounded-lg p-5 hover:border-amber-500/50 transition-colors"
+          className="bg-stone-900 border border-stone-800 p-6 hover:border-stone-600 transition-colors"
         >
-          <div className="flex items-start justify-between mb-3">
+          {/* Header */}
+          <div className="flex items-start justify-between mb-4">
             <div>
-              <h3 className="font-semibold text-slate-100">{p.name}</h3>
-              <p className="text-xs text-slate-500">{p.email}</p>
+              <h3 className="font-display text-lg text-stone-100">{p.name}</h3>
+              <p className="text-[11px] text-stone-600 mt-0.5">{p.email}</p>
               {p.city && (
-                <span className="inline-block mt-1 text-xs bg-blue-500/15 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded">
-                  📍 {p.city}
-                </span>
+                <p className="text-[10px] uppercase tracking-widest text-gold-500 mt-2">
+                  {p.city}
+                </p>
               )}
             </div>
-            <span className="text-lg font-bold text-amber-400">
+            <span className="font-display italic text-gold-300 text-xl">
               {p.vibePreferences?.budgetRange ?? '$$'}
             </span>
           </div>
 
+          <div className="w-8 h-px bg-stone-800 mb-4" />
+
           {/* Availability */}
           {p.availability?.length > 0 && (
-            <div className="mb-3">
-              <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Available</p>
-              <div className="flex flex-wrap gap-1">
+            <div className="mb-4">
+              <p className="text-[10px] uppercase tracking-widest text-stone-600 mb-2">Available</p>
+              <div className="flex flex-wrap gap-1.5">
                 {p.availability
                   .sort((a, b) => DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day))
                   .map((slot, i) => (
                     <span
                       key={i}
-                      className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded"
+                      className="text-[10px] bg-stone-800 text-stone-400 px-2 py-1 uppercase tracking-wide"
                     >
-                      {slot.day.slice(0, 3)} {slot.startTime}–{slot.endTime}
+                      {slot.day.slice(0, 3)} {slot.startTime}
                     </span>
                   ))}
               </div>
@@ -97,13 +100,13 @@ async function ParticipantsList() {
 
           {/* Venue Vibes */}
           {p.vibePreferences?.venueTypes?.length > 0 && (
-            <div className="mb-3">
-              <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Vibes</p>
-              <div className="flex flex-wrap gap-1">
+            <div className="mb-4">
+              <p className="text-[10px] uppercase tracking-widest text-stone-600 mb-2">Vibes</p>
+              <div className="flex flex-wrap gap-1.5">
                 {p.vibePreferences.venueTypes.map((v) => (
                   <span
                     key={v}
-                    className="text-xs bg-amber-500/15 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded"
+                    className="text-[10px] border border-gold-700/40 text-gold-500 px-2 py-0.5 uppercase tracking-wide"
                   >
                     {VIBE_LABELS[v] ?? v}
                   </span>
@@ -114,13 +117,13 @@ async function ParticipantsList() {
 
           {/* Drinks */}
           {p.vibePreferences?.drinkTypes?.length > 0 && (
-            <div className="mb-3">
-              <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Drinks</p>
-              <div className="flex flex-wrap gap-1">
+            <div className="mb-4">
+              <p className="text-[10px] uppercase tracking-widest text-stone-600 mb-2">Drinks</p>
+              <div className="flex flex-wrap gap-1.5">
                 {p.vibePreferences.drinkTypes.map((d) => (
                   <span
                     key={d}
-                    className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded"
+                    className="text-[10px] bg-stone-800 text-stone-500 px-2 py-0.5 uppercase tracking-wide"
                   >
                     {DRINK_LABELS[d] ?? d}
                   </span>
@@ -129,9 +132,9 @@ async function ParticipantsList() {
             </div>
           )}
 
-          <div className="flex items-center justify-between text-xs text-slate-500 mt-3 pt-3 border-t border-slate-700">
+          {/* Footer */}
+          <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-stone-700 mt-4 pt-4 border-t border-stone-800">
             <span>
-              Group:{' '}
               {p.vibePreferences?.groupSizePreference === 'intimate'
                 ? '1–4 people'
                 : p.vibePreferences?.groupSizePreference === 'medium'
@@ -149,10 +152,14 @@ async function ParticipantsList() {
 export default function ParticipantsPage() {
   return (
     <div>
-      <h1 className="text-2xl font-bold text-slate-100 mb-6">Participants</h1>
+      <div className="mb-10">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-gold-500 mb-3">The Guest List</p>
+        <h1 className="font-display text-4xl text-stone-100">Participants</h1>
+        <div className="w-12 h-px bg-gold-700 mt-4" />
+      </div>
       <Suspense
         fallback={
-          <div className="text-slate-400 text-center py-12">Loading participants…</div>
+          <div className="text-stone-600 text-center py-16 text-sm">Loading participants…</div>
         }
       >
         <ParticipantsList />

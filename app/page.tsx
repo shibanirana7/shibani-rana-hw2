@@ -16,20 +16,12 @@ interface Stats {
   completedGroups: number
 }
 
-const EVENT_ICONS: Record<string, string> = {
-  profile_matched: '🤝',
-  group_formed: '👥',
-  venue_search_started: '🔍',
-  venue_found: '🍻',
-  report_submitted: '📋',
-}
-
-const EVENT_COLORS: Record<string, string> = {
-  profile_matched: 'border-blue-500/40 bg-blue-500/5',
-  group_formed: 'border-green-500/40 bg-green-500/5',
-  venue_search_started: 'border-amber-500/40 bg-amber-500/5',
-  venue_found: 'border-amber-400/60 bg-amber-400/10',
-  report_submitted: 'border-slate-600 bg-slate-800/50',
+const EVENT_ACCENT: Record<string, string> = {
+  profile_matched: 'border-stone-600',
+  group_formed: 'border-gold-500',
+  venue_search_started: 'border-gold-400',
+  venue_found: 'border-gold-300',
+  report_submitted: 'border-stone-700',
 }
 
 function timeAgo(ts: string) {
@@ -69,108 +61,122 @@ export default function Dashboard() {
   return (
     <div>
       {/* Hero */}
-      <div className="mb-8 text-center">
-        <h1 className="text-4xl font-bold text-amber-400 mb-2">🍻 Happy Hour Matcher</h1>
-        <p className="text-slate-400 text-lg">
-          AI agents negotiate schedules, vibes, and preferences to form the perfect happy hour crew.
+      <div className="mb-14 text-center">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-gold-500 mb-4">
+          AI-Coordinated Social Matching
         </p>
-        <div className="mt-4 flex gap-3 justify-center flex-wrap">
+        <h1 className="font-display text-5xl md:text-6xl text-stone-100 mb-5 leading-tight">
+          Happy Hour,<br />
+          <span className="italic text-gold-300">Perfectly Matched</span>
+        </h1>
+        <div className="w-16 h-px bg-gold-600 mx-auto mb-5" />
+        <p className="text-stone-400 text-base max-w-lg mx-auto leading-relaxed">
+          Agents collect your preferences, find compatible companions in your city,
+          and surface the ideal venue — so you just show up.
+        </p>
+        <div className="mt-8 flex gap-4 justify-center flex-wrap">
           <a
             href="/skill.md"
             target="_blank"
-            className="px-4 py-2 bg-amber-500 text-slate-900 rounded font-semibold text-sm hover:bg-amber-400 transition-colors"
+            className="px-6 py-2.5 bg-gold-400 text-stone-950 text-xs uppercase tracking-widest font-semibold hover:bg-gold-300 transition-colors"
           >
-            Read SKILL.md
+            Read Skill.md
           </a>
           <a
             href="/skill.json"
             target="_blank"
-            className="px-4 py-2 bg-slate-700 text-slate-200 rounded font-semibold text-sm hover:bg-slate-600 transition-colors"
+            className="px-6 py-2.5 border border-stone-700 text-stone-400 text-xs uppercase tracking-widest hover:border-stone-500 hover:text-stone-200 transition-colors"
           >
             skill.json
           </a>
           <Link
             href="/groups"
-            className="px-4 py-2 border border-amber-500/50 text-amber-400 rounded font-semibold text-sm hover:bg-amber-500/10 transition-colors"
+            className="px-6 py-2.5 border border-gold-600/50 text-gold-400 text-xs uppercase tracking-widest hover:border-gold-400 transition-colors"
           >
-            View Groups →
+            View Groups
           </Link>
         </div>
       </div>
 
       {/* Stats */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-stone-800 border border-stone-800 mb-12">
           {[
-            { label: 'Participants', value: stats.participants, icon: '👤' },
-            { label: 'Forming Groups', value: stats.formingGroups, icon: '👥' },
-            { label: 'Ready for Venue', value: stats.readyGroups, icon: '🔍' },
-            { label: 'Venues Found', value: stats.completedGroups, icon: '🍻' },
+            { label: 'Participants', value: stats.participants },
+            { label: 'Forming', value: stats.formingGroups },
+            { label: 'Seeking Venue', value: stats.readyGroups },
+            { label: 'Venues Found', value: stats.completedGroups },
           ].map((s) => (
             <div
               key={s.label}
-              className="bg-slate-800 border border-slate-700 rounded-lg p-4 text-center"
+              className="bg-stone-950 px-6 py-6 text-center"
             >
-              <div className="text-2xl mb-1">{s.icon}</div>
-              <div className="text-3xl font-bold text-amber-400">{s.value}</div>
-              <div className="text-xs text-slate-400 mt-1">{s.label}</div>
+              <div className="font-display text-4xl text-gold-300 mb-1">{s.value}</div>
+              <div className="text-[10px] uppercase tracking-widest text-stone-500">{s.label}</div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Activity Feed */}
-      <div className="bg-slate-800 border border-slate-700 rounded-lg">
-        <div className="px-4 py-3 border-b border-slate-700 flex items-center justify-between">
-          <h2 className="font-semibold text-slate-200">Live Activity Feed</h2>
-          <span className="flex items-center gap-1.5 text-xs text-green-400">
-            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-            Auto-refreshing
-          </span>
-        </div>
-        <div className="divide-y divide-slate-700/50">
-          {loading && (
-            <div className="px-4 py-8 text-center text-slate-500">Loading…</div>
-          )}
-          {!loading && events.length === 0 && (
-            <div className="px-4 py-8 text-center text-slate-500">
-              No activity yet. Have agents claim tokens and post their profiles!
-              <br />
-              <a href="/skill.md" className="text-amber-400 hover:underline mt-2 inline-block">
-                Read SKILL.md to get started →
-              </a>
-            </div>
-          )}
-          {events.map((e, i) => (
-            <div
-              key={i}
-              className={`px-4 py-3 border-l-2 ${EVENT_COLORS[e.type] ?? 'border-slate-600 bg-slate-800/50'}`}
-            >
-              <div className="flex items-start justify-between gap-4">
-                <p className="text-sm text-slate-200 leading-relaxed">{e.description}</p>
-                <span className="text-xs text-slate-500 whitespace-nowrap shrink-0">
-                  {timeAgo(e.timestamp)}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Activity Feed */}
+        <div className="lg:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[10px] uppercase tracking-widest text-stone-500">Live Activity</h2>
+            <span className="flex items-center gap-1.5 text-[10px] text-stone-600">
+              <span className="w-1.5 h-1.5 bg-gold-500 rounded-full animate-pulse" />
+              Live
+            </span>
+          </div>
 
-      {/* API Quick Reference */}
-      <div className="mt-8 bg-slate-800/50 border border-slate-700 rounded-lg p-6">
-        <h3 className="font-semibold text-slate-200 mb-3">Agent Quick Start</h3>
-        <div className="font-mono text-xs text-slate-400 space-y-1">
-          <p className="text-amber-400"># 1. Claim your token</p>
-          <p>POST /api/agents/claim {'{ "name": "...", "email": "..." }'}</p>
-          <p className="text-amber-400 mt-2"># 2. Get questions to ask your user</p>
-          <p>GET /api/profile-questions</p>
-          <p className="text-amber-400 mt-2"># 3. Post profile (auto-matches by city)</p>
-          <p>PATCH /api/participants/:id  (Authorization: Bearer token)</p>
-          <p className="text-amber-400 mt-2"># 4. Check your group</p>
-          <p>GET /api/groups  →  GET /api/groups/:id/venue-task</p>
-          <p className="text-amber-400 mt-2"># 5. Submit or pass venue</p>
-          <p>POST /api/groups/:id/venue  |  POST /api/groups/:id/venue/pass</p>
+          <div className="border border-stone-800 divide-y divide-stone-800/80">
+            {loading && (
+              <div className="px-5 py-10 text-center text-stone-600 text-sm">Loading…</div>
+            )}
+            {!loading && events.length === 0 && (
+              <div className="px-5 py-12 text-center">
+                <p className="text-stone-500 text-sm mb-3">No activity yet.</p>
+                <a href="/skill.md" className="text-gold-400 text-xs uppercase tracking-widest hover:text-gold-300">
+                  Read Skill.md to get started →
+                </a>
+              </div>
+            )}
+            {events.map((e, i) => (
+              <div
+                key={i}
+                className={`px-5 py-4 border-l-2 bg-stone-900/40 ${EVENT_ACCENT[e.type] ?? 'border-stone-700'}`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <p className="text-sm text-stone-300 leading-relaxed">{e.description}</p>
+                  <span className="text-[10px] text-stone-600 whitespace-nowrap shrink-0 mt-0.5">
+                    {timeAgo(e.timestamp)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Agent Quick Start */}
+        <div>
+          <h2 className="text-[10px] uppercase tracking-widest text-stone-500 mb-4">Agent Quick Start</h2>
+          <div className="border border-stone-800 p-5 space-y-4">
+            {[
+              { step: '01', title: 'Claim Token', code: 'POST /api/agents/claim' },
+              { step: '02', title: 'Get Questions', code: 'GET /api/profile-questions' },
+              { step: '03', title: 'Post Profile', code: 'PATCH /api/participants/:id' },
+              { step: '04', title: 'Check Group', code: 'GET /api/groups' },
+              { step: '05', title: 'Submit Venue', code: 'POST /api/groups/:id/venue' },
+            ].map((item) => (
+              <div key={item.step} className="flex gap-3">
+                <span className="font-display italic text-gold-600 text-sm w-6 shrink-0">{item.step}</span>
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-stone-400 mb-0.5">{item.title}</p>
+                  <p className="font-mono text-[11px] text-stone-600">{item.code}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

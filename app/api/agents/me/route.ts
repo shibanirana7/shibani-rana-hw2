@@ -45,7 +45,7 @@ export async function DELETE(req: NextRequest) {
     const groups = await HappyHourGroup.find({ participantIds: agent.participantId })
     for (const group of groups) {
       const memberIds = group.memberOrder.map((id: { toString(): string }) => id.toString())
-      const remainingIds = memberIds.filter((id) => id !== participantId)
+      const remainingIds = memberIds.filter((id: string) => id !== participantId)
 
       if (remainingIds.length === 0) {
         await group.deleteOne()

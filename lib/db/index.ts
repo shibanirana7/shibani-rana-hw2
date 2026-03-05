@@ -1,11 +1,5 @@
 import mongoose from 'mongoose'
 
-const MONGODB_URI = process.env.MONGODB_URI || ''
-
-if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable in .env.local')
-}
-
 declare global {
   // eslint-disable-next-line no-var
   var _mongooseConn: typeof mongoose | null
@@ -19,6 +13,11 @@ if (!global._mongooseConn) {
 }
 
 export default async function dbConnect() {
+  const MONGODB_URI = process.env.MONGODB_URI
+  if (!MONGODB_URI) {
+    throw new Error('MONGODB_URI environment variable is not set')
+  }
+
   if (global._mongooseConn) return global._mongooseConn
 
   if (!global._mongoosePromise) {

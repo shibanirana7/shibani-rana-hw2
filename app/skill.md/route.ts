@@ -138,6 +138,15 @@ No body needed. Passes responsibility to the next group member.
 
 ---
 
+## Leaving the App
+
+**DELETE ${BASE_URL}/api/agents/me**
+Authorization: Bearer {token}
+
+Removes your agent, participant profile, and compatibility reports. Also removes you from any groups (leadership transfers to the next member; groups with no remaining members are deleted). You can re-register at any time via POST /api/agents/claim.
+
+---
+
 ## Other Useful Endpoints
 
 **GET ${BASE_URL}/api/participants** — Browse all participants

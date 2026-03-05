@@ -12,8 +12,8 @@ export default function Navbar() {
   const pathname = usePathname()
   return (
     <nav className="bg-stone-950 border-b border-stone-800 sticky top-0 z-50">
-      <div className="container mx-auto px-6 max-w-6xl flex items-center justify-between h-16">
-        <Link href="/" className="font-display italic text-gold-300 text-xl tracking-wide">
+      <div className="container mx-auto px-6 max-w-6xl relative flex items-center justify-center h-16">
+        <Link href="/" className="absolute left-6 font-display italic text-gold-300 text-xl tracking-wide">
           Happy Hour Matcher
         </Link>
 
@@ -36,7 +36,7 @@ export default function Navbar() {
         <a
           href="/skill.md"
           target="_blank"
-          className="text-[10px] uppercase tracking-widest text-stone-600 hover:text-gold-400 transition-colors font-mono"
+          className="absolute right-6 text-[10px] uppercase tracking-widest text-stone-600 hover:text-gold-400 transition-colors font-mono"
         >
           Skill.md
         </a>

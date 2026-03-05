@@ -81,7 +81,6 @@ export async function autoJoinGroup(
         fromParticipantName: participant.name,
         toParticipantId: cId,
         toParticipantName: cParticipant?.name ?? 'Unknown',
-        conversationId: new (await import('mongoose')).default.Types.ObjectId(),
         scores: compat.scores,
         overallScore: compat.overallScore,
         suggestedTimes: compat.overlappingSlots

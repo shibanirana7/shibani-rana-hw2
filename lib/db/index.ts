@@ -21,9 +21,14 @@ export default async function dbConnect() {
   if (global._mongooseConn) return global._mongooseConn
 
   if (!global._mongoosePromise) {
-    global._mongoosePromise = mongoose.connect(MONGODB_URI, {
-      bufferCommands: false,
-    })
+    global._mongoosePromise = mongoose
+      .connect(MONGODB_URI, { bufferCommands: false })
+      .catch((err) => {
+        // Reset so the next request gets a fresh attempt rather than
+        // reusing a cached rejected promise forever
+        global._mongoosePromise = null
+        throw err
+      })
   }
 
   global._mongooseConn = await global._mongoosePromise

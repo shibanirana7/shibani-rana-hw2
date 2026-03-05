@@ -136,7 +136,7 @@ async function ParticipantsList() {
           <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-stone-700 mt-4 pt-4 border-t border-stone-800">
             <span>
               {p.vibePreferences?.groupSizePreference === 'intimate'
-                ? '1–4 people'
+                ? '2–4 people'
                 : p.vibePreferences?.groupSizePreference === 'medium'
                 ? '5–8 people'
                 : '9+ people'}

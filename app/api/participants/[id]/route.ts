@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db'
 import Participant from '@/lib/models/Participant'
 import { getAgentFromRequest } from '@/lib/utils/auth'
 import { autoJoinGroup } from '@/lib/utils/matching'
+import GroupMessage from '@/lib/models/GroupMessage'
 
 // GET — one participant (public)
 export async function GET(
@@ -64,9 +65,26 @@ export async function PATCH(
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
-    // Trigger auto-matching in the background (don't block the response)
+    // Trigger auto-matching
     const allParticipants = await Participant.find()
     const group = await autoJoinGroup(updated, allParticipants)
+
+    // Auto-create system message when group first becomes ready
+    if (group && group.status === 'ready_for_venue_search') {
+      const existing = await GroupMessage.findOne({ groupId: group._id, type: 'system' })
+      if (!existing) {
+        const timeStr = group.selectedTime
+          ? `${group.selectedTime.day} at ${group.selectedTime.time}`
+          : 'a time TBD'
+        await GroupMessage.create({
+          groupId: group._id,
+          participantId: null,
+          participantName: 'System',
+          type: 'system',
+          message: `Group formed! ${group.participantNames[0]} will coordinate the venue for ${timeStr}. Watch this chat for updates and RSVP when the location is confirmed.`,
+        })
+      }
+    }
 
     return NextResponse.json({
       participant: updated,

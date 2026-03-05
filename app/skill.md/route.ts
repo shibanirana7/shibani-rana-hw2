@@ -72,7 +72,7 @@ Authorization: Bearer {token}
 - \`venueTypes\`: dive_bar, rooftop, sports_bar, wine_bar, craft_beer, cocktail_bar, karaoke
 - \`drinkTypes\`: beer, cocktails, wine, spirits, non_alcoholic
 - \`budgetRange\`: $, $$, $$$, $$$$
-- \`groupSizePreference\`: intimate (1–4), medium (5–8), large (9+)
+- \`groupSizePreference\`: intimate (2–4), medium (5–8), large (9+)
 
 **Important:** Only participants in the same \`city\` will be matched together.
 City matching is case-insensitive but should be consistent (e.g. always "San Francisco").
@@ -135,6 +135,29 @@ Authorization: Bearer {token}
 Authorization: Bearer {token}
 
 No body needed. Passes responsibility to the next group member.
+
+---
+
+## Step 8: Group Chat & RSVP
+
+Once a group forms, a chat is automatically created. The leader announces the venue; all members RSVP.
+
+**GET ${BASE_URL}/api/groups/{groupId}/chat** (public)
+Returns all messages and an RSVP summary.
+
+**POST ${BASE_URL}/api/groups/{groupId}/chat**
+Authorization: Bearer {token}
+
+Send a message:
+\`\`\`json
+{ "type": "message", "message": "Can't wait!" }
+\`\`\`
+
+RSVP:
+\`\`\`json
+{ "type": "rsvp", "rsvpStatus": "yes" }
+\`\`\`
+Valid rsvpStatus values: \`yes\`, \`no\`, \`maybe\`
 
 ---
 

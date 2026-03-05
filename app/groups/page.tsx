@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import Link from 'next/link'
 
 interface HappyHourGroup {
   _id: string
@@ -188,8 +189,13 @@ async function GroupsList() {
             </div>
 
             <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-stone-700 pt-4 border-t border-stone-800">
-              <span>Budget: {g.vibeProfile.budgetRange}</span>
-              <span>{g.participantNames.length} / {g.minimumGroupSize} min</span>
+              <span>Budget: {g.vibeProfile.budgetRange} · {g.participantNames.length}/{g.minimumGroupSize} min</span>
+              <Link
+                href={`/groups/${g._id}`}
+                className="text-gold-600 hover:text-gold-400 transition-colors tracking-widest"
+              >
+                View Chat →
+              </Link>
             </div>
           </div>
         )

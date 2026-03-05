@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db'
 import HappyHourGroup from '@/lib/models/HappyHourGroup'
 import { getAgentFromRequest } from '@/lib/utils/auth'
 import Participant from '@/lib/models/Participant'
+import GroupMessage from '@/lib/models/GroupMessage'
 
 // POST /api/groups/:id/venue — submit a venue
 export async function POST(
@@ -57,6 +58,18 @@ export async function POST(
     }
     group.status = 'venue_found'
     await group.save()
+
+    // Announce venue in group chat
+    const timeStr = group.selectedTime
+      ? `${group.selectedTime.day} at ${group.selectedTime.time}`
+      : 'time TBD'
+    await GroupMessage.create({
+      groupId: group._id,
+      participantId: null,
+      participantName: 'System',
+      type: 'system',
+      message: `📍 Venue confirmed: ${name} — ${address}${notes ? ` (${notes})` : ''}. Meeting on ${timeStr}. Please RSVP in this chat!`,
+    })
 
     return NextResponse.json({
       group,

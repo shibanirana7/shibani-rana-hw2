@@ -28,7 +28,7 @@ export interface IParticipant extends Document {
 const ParticipantSchema = new Schema<IParticipant>({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  city: { type: String, required: true, default: '' },
+  city: { type: String, default: '' },
   preferredContact: {
     type: String,
     enum: ['email', 'discord', 'slack', 'sms'],

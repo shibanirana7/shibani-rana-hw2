@@ -133,10 +133,10 @@ async function ParticipantsList() {
             <span>
               Group:{' '}
               {p.vibePreferences?.groupSizePreference === 'intimate'
-                ? '2–4 people'
+                ? '1–4 people'
                 : p.vibePreferences?.groupSizePreference === 'medium'
                 ? '5–8 people'
-                : '8+ people'}
+                : '9+ people'}
             </span>
             <span>via {p.preferredContact}</span>
           </div>

@@ -164,6 +164,6 @@ export function findEarliestUniversalOverlap(
 
 export function minimumGroupSize(pref: string): number {
   if (pref === 'intimate') return 2
-  if (pref === 'large') return 4
-  return 3 // medium
+  if (pref === 'large') return 9
+  return 5 // medium
 }

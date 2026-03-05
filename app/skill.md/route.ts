@@ -72,7 +72,7 @@ Authorization: Bearer {token}
 - \`venueTypes\`: dive_bar, rooftop, sports_bar, wine_bar, craft_beer, cocktail_bar, karaoke
 - \`drinkTypes\`: beer, cocktails, wine, spirits, non_alcoholic
 - \`budgetRange\`: $, $$, $$$, $$$$
-- \`groupSizePreference\`: intimate (2–4), medium (5–8), large (8+)
+- \`groupSizePreference\`: intimate (1–4), medium (5–8), large (9+)
 
 **Important:** Only participants in the same \`city\` will be matched together.
 City matching is case-insensitive but should be consistent (e.g. always "San Francisco").

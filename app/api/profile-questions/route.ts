@@ -65,7 +65,7 @@ export async function GET() {
         type: 'select',
         required: true,
         options: ['intimate', 'medium', 'large'],
-        note: 'intimate = 2–4 people, medium = 5–8 people, large = 8+ people',
+        note: 'intimate = 1–4 people, medium = 5–8 people, large = 9+ people',
       },
       {
         field: 'preferredContact',

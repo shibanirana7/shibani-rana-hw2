@@ -55,6 +55,37 @@ export async function autoJoinGroup(
   const pId = participant._id.toString()
   const city = participant.city
 
+  // Check if already in a group — must happen before candidates check so profile
+  // updates always recalculate the existing group regardless of other members' completeness
+  const alreadyIn = await HappyHourGroup.findOne({
+    participantIds: participant._id,
+    city,
+  })
+  if (alreadyIn) {
+    const memberDocs = allParticipants.filter((p) =>
+      alreadyIn.participantIds.map((id: { toString(): string }) => id.toString()).includes(p._id.toString())
+    )
+    const newTime = findEarliestUniversalOverlap(memberDocs)
+    alreadyIn.selectedTime = newTime
+    alreadyIn.vibeProfile = vibeProfile(memberDocs)
+
+    // Recalculate minimumGroupSize based on all members' preferences (most demanding wins)
+    const newMinSize = Math.max(
+      ...memberDocs.map((p) => minimumGroupSize(p.vibePreferences?.groupSizePreference ?? 'medium'))
+    )
+    alreadyIn.minimumGroupSize = newMinSize
+
+    const currentCount = alreadyIn.participantIds.length
+    if (alreadyIn.status === 'forming' && currentCount >= newMinSize) {
+      alreadyIn.status = 'ready_for_venue_search'
+    } else if (alreadyIn.status === 'ready_for_venue_search' && currentCount < newMinSize) {
+      alreadyIn.status = 'forming'
+    }
+
+    await alreadyIn.save()
+    return alreadyIn
+  }
+
   // Candidates: same city, complete profile, not self
   const candidates = allParticipants.filter(
     (p) => p._id.toString() !== pId && p.city === city && isProfileComplete(p)
@@ -89,37 +120,6 @@ export async function autoJoinGroup(
         notes: 'Auto-generated from profile matching',
       })
     }
-  }
-
-  // Check if already in a group
-  const alreadyIn = await HappyHourGroup.findOne({
-    participantIds: participant._id,
-    city,
-  })
-  if (alreadyIn) {
-    // Recalculate selectedTime and vibeProfile with updated profile
-    const memberDocs = allParticipants.filter((p) =>
-      alreadyIn.participantIds.map((id: { toString(): string }) => id.toString()).includes(p._id.toString())
-    )
-    const newTime = findEarliestUniversalOverlap(memberDocs)
-    alreadyIn.selectedTime = newTime
-    alreadyIn.vibeProfile = vibeProfile(memberDocs)
-
-    // Recalculate minimumGroupSize based on all members' preferences (most demanding wins)
-    const newMinSize = Math.max(
-      ...memberDocs.map((p) => minimumGroupSize(p.vibePreferences?.groupSizePreference ?? 'medium'))
-    )
-    alreadyIn.minimumGroupSize = newMinSize
-
-    const currentCount = alreadyIn.participantIds.length
-    if (alreadyIn.status === 'forming' && currentCount >= newMinSize) {
-      alreadyIn.status = 'ready_for_venue_search'
-    } else if (alreadyIn.status === 'ready_for_venue_search' && currentCount < newMinSize) {
-      alreadyIn.status = 'forming'
-    }
-
-    await alreadyIn.save()
-    return alreadyIn
   }
 
   // Find a suitable existing 'forming' group to join
@@ -177,7 +177,9 @@ export async function autoJoinGroup(
   const { candidate, compat } = compatiblePairs[0]
   const members = [participant, candidate]
   const selectedTime = findEarliestUniversalOverlap(members)
-  const minSize = minimumGroupSize(participant.vibePreferences?.groupSizePreference ?? 'medium')
+  const minSize = Math.max(
+    ...members.map((p) => minimumGroupSize(p.vibePreferences?.groupSizePreference ?? 'medium'))
+  )
 
   const newGroup = await HappyHourGroup.create({
     city,
